@@ -1,0 +1,43 @@
+<!DOCTYPE html><html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0f1110;--fg:#ece9e1;--mut:#8a908b;--ac:#9bc88a;--line:#232725}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px system-ui,sans-serif;padding:16px 16px 40px}
+header{display:flex;justify-content:space-between;align-items:center}
+h1{font-size:22px;margin:0}button.x{background:none;border:0;color:var(--mut);font-size:15px}
+.total{margin:18px 0 6px;font-size:40px;font-weight:700;color:var(--ac)}.sub{color:var(--mut);margin-bottom:18px}
+nav{display:flex;gap:8px;margin-bottom:12px}
+nav button{flex:1;padding:10px;border-radius:20px;border:1px solid var(--line);background:none;color:var(--mut);font-size:15px}
+nav button.on{background:var(--ac);color:#0f1110;border-color:var(--ac);font-weight:600}
+.row{padding:12px 0;border-bottom:1px solid var(--line)}.top{display:flex;justify-content:space-between;gap:10px}
+.n{overflow:hidden;text-overflow:ellipsis}.v{color:var(--ac);white-space:nowrap}.m{color:var(--mut);font-size:13px;margin-top:2px}
+.bar{height:4px;background:var(--line);margin-top:8px;border-radius:2px}.bar i{display:block;height:100%;background:var(--ac);border-radius:2px}
+.empty{color:var(--mut);padding:30px 0;text-align:center}
+</style></head><body>
+<header><h1>Dinleme istatistiği</h1><button class="x" onclick="Native.close()">Kapat</button></header>
+<div class="total" id="total"></div><div class="sub" id="sub"></div>
+<nav><button id="b-day" class="on">Günlük</button><button id="b-month">Aylık</button><button id="b-song">Şarkılar</button></nav>
+<div id="list"></div>
+<script>
+var D=JSON.parse(Native.getStats());
+function fmt(s){var h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+" sa "+m+" dk":m+" dk"}
+var MON=["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+function dayName(k){var p=k.split("-");return +p[2]+" "+MON[p[1]-1]+" "+p[0]}
+function rows(items,key){
+  var max=Math.max.apply(null,items.map(function(i){return i.s}))||1;
+  return items.length?items.map(function(i){return '<div class="row"><div class="top"><span class="n">'+i.n+'</span><span class="v">'+fmt(i.s)+'</span></div>'+(i.m?'<div class="m">'+i.m+'</div>':'')+'<div class="bar"><i style="width:'+(i.s/max*100)+'%"></i></div></div>'}).join(""):'<div class="empty">Henüz dinleme yok. Bir şarkı çal, burada görünsün.</div>'}
+var days=Object.keys(D.days).sort().reverse();
+var all=days.reduce(function(a,k){return a+D.days[k]},0);
+document.getElementById("total").textContent=fmt(all);
+document.getElementById("sub").textContent="toplam dinleme, "+days.length+" gün";
+function show(t){
+  ["day","month","song"].forEach(function(x){document.getElementById("b-"+x).className=x==t?"on":""});
+  var h="";
+  if(t=="day")h=rows(days.map(function(k){return{n:dayName(k),s:D.days[k]}}));
+  if(t=="month"){var mo={};days.forEach(function(k){var m=k.slice(0,7);mo[m]=(mo[m]||0)+D.days[k]});
+    h=rows(Object.keys(mo).sort().reverse().map(function(m){var p=m.split("-");return{n:MON[p[1]-1]+" "+p[0],s:mo[m]}}))}
+  if(t=="song"){var sg=Object.keys(D.songs).map(function(k){var s=D.songs[k];return{n:k,s:s.secs||0,m:(s.plays||0)+" dinleme"}}).sort(function(a,b){return b.s-a.s});h=rows(sg)}
+  document.getElementById("list").innerHTML=h}
+["day","month","song"].forEach(function(x){document.getElementById("b-"+x).onclick=function(){show(x)}});
+show("day");
+</script></body></html>
